@@ -55,12 +55,15 @@ func WithLogger(logger func(format string, a ...any)) func(*Connection) {
 
 // Creates a new connection to a RCT device at the given address.
 // Must not be called concurrently.
-func NewConnection(ctx context.Context, host string, opt ...func(*Connection)) (*Connection, error) {
+func NewConnection(ctx context.Context, host string, port string, opt ...func(*Connection)) (*Connection, error) {
 	conn := &Connection{
 		cache:  newCache(),
 		broker: internal.NewBroker[*Datagram](),
 	}
 
+	if port == "" {
+		port = "8899"
+	}
 	for _, o := range opt {
 		o(conn)
 	}
@@ -68,7 +71,7 @@ func NewConnection(ctx context.Context, host string, opt ...func(*Connection)) (
 	bufC := make(chan byte, 1024)
 	errC := make(chan error, 1)
 
-	go conn.receive(ctx, net.JoinHostPort(host, "8899"), bufC, errC)
+	go conn.receive(ctx, net.JoinHostPort(host, port), bufC, errC)
 
 	// wait up to SuccessTimeout for first non-error response, i.e. successful read
 	var lastErr error
